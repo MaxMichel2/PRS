@@ -1,7 +1,7 @@
 /*
 TODO :
   - TIMEOUTS
-  - Créer une fonction qui s'occupe de la gestion des timeout + erreurs de transmission
+  - Crï¿½er une fonction qui s'occupe de la gestion des timeout + erreurs de transmission
   - Congestion
 */
 #include <stdio.h>
@@ -27,11 +27,11 @@ TODO :
 /*
   DEUX REGLEs SUR LE FICHIER A envoyer
 	- UNE LIGNE NE DOIT PAS COMMENCER PAR END !!!
-	- PAS DE LIGNE à moins de 2 caractères
+	- PAS DE LIGNE ï¿½ moins de 2 caractï¿½res
 */
 
 int get_numSequence(char* buffer) {
-	//Récupération num séquence
+	//Rï¿½cupï¿½ration num sï¿½quence
 	char* ptr = strtok(buffer, " "); //pointeur vers "numSequence"
 	int numSequence = atoi(ptr);
 	return numSequence;
@@ -40,7 +40,7 @@ int get_numSequence(char* buffer) {
 void* replace_str(char* str, const char* orig, const char* rep)
 {
 	//FONCTION REMPLACANT CERTAINS CARACTERES DANS CHAINE DE CARACTERES
-	//Utilisé pour formater ligne à envoyer
+	//Utilisï¿½ pour formater ligne ï¿½ envoyer
 	char* p;
 	while ((p = strstr(str, orig)))
 	{
@@ -61,14 +61,14 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	//Définition adresse UDP de connexion :
+	//Dï¿½finition adresse UDP de connexion :
 	struct sockaddr_in adresseUDP; //Structure contenant addresse serveur
 	memset((char*)&adresseUDP, 0, sizeof(adresseUDP));
 	adresseUDP.sin_family = domain;
-	adresseUDP.sin_port = htons(atoi(argv[1])); //Port du serveur, converti en valeur réseau
+	adresseUDP.sin_port = htons(atoi(argv[1])); //Port du serveur, converti en valeur rï¿½seau
 	adresseUDP.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	//Définition socket UDP
+	//Dï¿½finition socket UDP
 	int socketServUDP;
 	if ((socketServUDP = socket(domain, type_UDP, protocol)) == -1)
 	{
@@ -79,14 +79,14 @@ int main(int argc, char* argv[])
 	//Lien entre les deux :
 	bind(socketServUDP, (struct sockaddr*) & adresseUDP, sizeof(adresseUDP));
 
-	//Définition adresse UDP de connexion :
+	//Dï¿½finition adresse UDP de connexion :
 	struct sockaddr_in adresseUDP_data; //Structure contenant addresse serveur
 	memset((char*)&adresseUDP_data, 0, sizeof(adresseUDP_data));
 	adresseUDP_data.sin_family = domain;
-	adresseUDP_data.sin_port = htons(atoi(argv[2])); //Port du serveur, converti en valeur réseau
+	adresseUDP_data.sin_port = htons(atoi(argv[2])); //Port du serveur, converti en valeur rï¿½seau
 	adresseUDP_data.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	//Définition socket UDP
+	//Dï¿½finition socket UDP
 	int socketServUDP_data;
 	if ((socketServUDP_data = socket(domain, type_UDP, protocol)) == -1)
 	{
@@ -136,8 +136,8 @@ int main(int argc, char* argv[])
 	while (online) //Boucle de connexion
 	{
 		//TODO : SELECT
-		FD_SET(socketServUDP, &socket_set); //Activation du bit associé à au socket UDP de CONNEXION
-		FD_SET(socketServUDP_data, &socket_set); //Activation du bit associé à au socket UDP de DATA
+		FD_SET(socketServUDP, &socket_set); //Activation du bit associï¿½ ï¿½ au socket UDP de CONNEXION
+		FD_SET(socketServUDP_data, &socket_set); //Activation du bit associï¿½ ï¿½ au socket UDP de DATA
 		selret = select(5, &socket_set, NULL, NULL, NULL);
 		if (selret < 0)
 		{
@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
 		if (isInit) {
 			//PORT CONNEXION
 			recvfrom(socketServUDP, buffer, BUFFER_TAILLE, 0, (struct sockaddr*) & adresse_arrivee, &taille_arrivee);
-			if (strcmp(buffer, "") != 0) printf("Reçu UDP : %s\n", buffer);
+			if (strcmp(buffer, "") != 0) printf("Reï¿½u UDP : %s\n", buffer);
 			//recuperation de l'adresse
 			ipClient = inet_ntoa(adresse_arrivee.sin_addr);
 			portClient = ntohs(adresse_arrivee.sin_port);
@@ -157,7 +157,7 @@ int main(int argc, char* argv[])
 
 			//initialisation de connexion (reception SYN)
 			if (strstr(buffer, " SYN") != NULL) {
-				//Récupération num séquence
+				//Rï¿½cupï¿½ration num sï¿½quence
 				numSequence = get_numSequence(buffer);
 				//Envoi du SYNACK
 				numSequence++;
@@ -183,7 +183,7 @@ int main(int argc, char* argv[])
 						}
 						numSequence++;
 						memset(buffer, 0, sizeof(buffer));
-						sprintf(buffer, "%i %i", numSequence, atoi(argv[2])); //Envoi du port de données
+						sprintf(buffer, "%i %i", numSequence, atoi(argv[2])); //Envoi du port de donnï¿½es
 						sendto(socketServUDP, buffer, strlen(buffer), 0, (const struct sockaddr*) & adresse_arrivee, taille_arrivee);
 					}
 				}
@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
 		else {
 			//TODO : PORT data
 			recvfrom(socketServUDP_data, buffer, BUFFER_TAILLE, 0, (struct sockaddr*) & adresse_data, &taille_data);
-			if (strcmp(buffer, "") != 0) printf("Reçu UDP : %s\n", buffer);
+			if (strcmp(buffer, "") != 0) printf("Reï¿½u UDP : %s\n", buffer);
 			//recuperation de l'adresse
 			ipClient_data = inet_ntoa(adresse_data.sin_addr);
 			portClient_data = ntohs(adresse_data.sin_port);
@@ -200,7 +200,7 @@ int main(int argc, char* argv[])
 			printf("Port = %i\n", portClient_data);
 			//Premier message ?????
 			if (strstr(buffer, " BEGIN") != NULL) {
-				//Récupération num séquence
+				//Rï¿½cupï¿½ration num sï¿½quence
 				numSequence = get_numSequence(buffer);
 				//Ouverture fichier
 				fichier = fopen("fichier_serveur.txt", "r");
@@ -211,7 +211,7 @@ int main(int argc, char* argv[])
 					return 0;
 				}
 				while (fgets(ligne, BUFFER_TAILLE - 7, fichier) != NULL) {
-					//Traitement de la ligne : pour le bien de l'envoi, les espaces du message doivent être convertis en underscore
+					//Traitement de la ligne : pour le bien de l'envoi, les espaces du message doivent ï¿½tre convertis en underscore
 					replace_str(ligne, espace, underscore);
 					//envoi
 					numSequence++;
@@ -220,13 +220,13 @@ int main(int argc, char* argv[])
 					sendto(socketServUDP_data, buffer, strlen(buffer), 0, (const struct sockaddr*) & adresse_data, taille_data);
 					//attente de l'ACK
 					recvfrom(socketServUDP_data, buffer, BUFFER_TAILLE, 0, (struct sockaddr*) & adresse_data, &taille_data);
-					printf("Reçu UDP : %s\n", buffer);
+					printf("Reï¿½u UDP : %s\n", buffer);
 					numSequence++;
 					while (!((strstr(buffer, "ACK") != NULL) && (get_numSequence(buffer) == numSequence))) {
 						printf("numSequence ou type invalide\n");
 						sendto(socketServUDP_data, &buffer, strlen(buffer), 0, (const struct sockaddr*) & adresse_data, taille_data);
 						recvfrom(socketServUDP_data, buffer, BUFFER_TAILLE, 0, (struct sockaddr*) & adresse_data, &taille_data);
-						printf("ligne envoyée et reçue\n");
+						printf("ligne envoyï¿½e et reï¿½ue\n");
 						memset(buffer, 0, sizeof(buffer));
 					}
 					//else : renvoyer le message
@@ -238,7 +238,7 @@ int main(int argc, char* argv[])
 				sendto(socketServUDP_data, buffer, strlen(buffer), 0, (const struct sockaddr*) & adresse_data, taille_data);
 				//Attente ENDACK
 				recvfrom(socketServUDP_data, buffer, BUFFER_TAILLE, 0, (struct sockaddr*) & adresse_data, &taille_data);
-				printf("Reçu UDP : %s\n", buffer);
+				printf("Reï¿½u UDP : %s\n", buffer);
 				numSequence++;
 				while (!((strstr(buffer, "ENDACK") != NULL) && get_numSequence(buffer) == numSequence)) {
 					printf("numSequence ou type invalide\n");
@@ -246,12 +246,12 @@ int main(int argc, char* argv[])
 					recvfrom(socketServUDP_data, buffer, BUFFER_TAILLE, 0, (struct sockaddr*) & adresse_data, &taille_data);
 				}
 				//envoi ACK et fin de transmission
-				printf("ENDACK reçu\n");
+				printf("ENDACK reï¿½u\n");
 				numSequence++;
 				memset(buffer, 0, sizeof(buffer));
 				sprintf(buffer, "%i ACK", numSequence);
 				sendto(socketServUDP_data, buffer, strlen(buffer), 0, (const struct sockaddr*) & adresse_data, taille_data);
-				fclose(fichier); // On ferme le fichier qui a été ouvert
+				fclose(fichier); // On ferme le fichier qui a ï¿½tï¿½ ouvert
 			}
 		}
 	}

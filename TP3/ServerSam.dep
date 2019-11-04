@@ -1,1 +1,1 @@
-ServerSam.o: ServerSam.c
+serverSam.o: serverSam.c
