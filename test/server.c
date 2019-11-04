@@ -139,6 +139,7 @@ int main(int argc, char* argv[])
 				bzero(buffer, sizeof(buffer));
 			}
 		}
+		FD_ZERO(&socket_fd_set)
     }
 	close(socket_sync_fd);
 }
