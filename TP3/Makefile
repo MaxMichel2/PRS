@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall
-TARGET = client server clientSam serverSam
+TARGET = client server
 
 SRC=$(TARGET:=.c)
 OBJ=$(SRC:.c=.o)
