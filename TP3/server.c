@@ -71,10 +71,10 @@ int main(int argc, char* argv[])
 	server_addr.sin_port = htons(port_sync);
 	server_addr.sin_addr.s_addr = INADDR_ANY;
 
-	int socket_length = sizeof(server_addr);
+	socklen_t socket_length = sizeof(server_addr);
 
 	// SYNCHRONIZATION SOCKET BIND
-	if (bind(socket_fd, (struct sockaddr*) &server_addr, sizeof(server_addr)) < 0)
+	if (bind(socket_fd, (struct sockaddr*) &server_addr, socket_length) < 0)
 	{
 		perror("[-] Bind error");
 		exit(1);
@@ -103,10 +103,10 @@ int main(int argc, char* argv[])
 	server_data_addr.sin_port = htons(port_data);
 	server_data_addr.sin_addr.s_addr = INADDR_ANY;
 
-	int socket_data_length = sizeof(server_data_addr);
+	socklen_t socket_data_length = sizeof(server_data_addr);
 
 	// DATA SOCKET BIND
-	if (bind(socket_data_fd, (struct sockaddr*) &server_data_addr, sizeof(server_data_addr)) < 0)
+	if (bind(socket_data_fd, (struct sockaddr*) &server_data_addr, socket_data_length) < 0)
 	{
 		perror("[-] Bind error");
 		exit(1);
@@ -115,11 +115,11 @@ int main(int argc, char* argv[])
 
 	// CLIENT SYNCHRONIZATION
 	struct sockaddr_in client_addr;
-	socklen_t client_length;
+	socklen_t client_length = sizeof(client_addr);
 
 	// CLIENT DATA
 	struct sockaddr_in client_data_addr;
-	socklen_t client_data_length;
+	socklen_t client_data_length = sizeof(client_data_addr);
 	char* client_data_IP;
 	int client_data_port;
 
@@ -168,6 +168,7 @@ int main(int argc, char* argv[])
 
 		if (FD_ISSET(socket_data_fd, &read_fd_set))
 		{
+			memset(buffer, 0, sizeof(buffer));
 			int recvfrom_return = recvfrom(socket_data_fd, buffer, BUFFER_SIZE, 0, (struct sockaddr*) & client_data_addr, &client_data_length);
 			if (strcmp(buffer, "") != 0)
 			{
@@ -185,7 +186,6 @@ int main(int argc, char* argv[])
 					printf("UDP Client: %s\n", buffer);
 					sendto(socket_data_fd, buffer, recvfrom_return, 0, (struct sockaddr*) & client_data_addr, client_data_length);
 					memset(buffer, 0, sizeof(buffer));
-					bzero(buffer, sizeof(buffer));
 				}
 			}
 		}

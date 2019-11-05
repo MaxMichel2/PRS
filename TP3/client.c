@@ -107,7 +107,8 @@ int main(int argc, char* argv[])
 			socket_length = sizeof(client_addr);
 		}
 		else
-		{		
+		{	
+			memset(buffer, 0, sizeof(buffer));
 			printf("UDP Client: ");
 			fgets(buffer, BUFFER_SIZE, stdin);
 			buffer[strcspn(buffer, "\n")] = 0;
