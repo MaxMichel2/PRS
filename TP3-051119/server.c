@@ -25,13 +25,13 @@ int main(int argc, char* argv[])
 	if (argc < 3)
 	{
 		printf("Too few arguments given.\n");
-		printf("Format: ./server port_sync port_data\n");
+		printf("Format: ./server <port_sync> <port_data>\n");
 		exit(1);
 	}
 	else if (argc > 3)
 	{
 		printf("Too many arguments given.\n");
-		printf("Format: ./server port_sync port_data\n");
+		printf("Format: ./server <port_sync> <port_data>\n");
 		exit(1);
 	}
 	else
