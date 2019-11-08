@@ -18,12 +18,8 @@
 
 int get_data_port(char* buffer)
 {
-	char delim[] = "-";
-	char port[20];
-	char* ptr = strtok(buffer, delim); // ptr = "SYN"
-	ptr = strtok(NULL, delim);      // ptr = "ACK"
-	ptr = strtok(NULL, delim);      // ptr = port_data
-	strcpy(port, ptr);
+	char port[4];
+	memcpy(&port, buffer+7, sizeof(port));
 	int port_data = atoi(port);
 	return port_data;
 }
@@ -108,6 +104,12 @@ int main(int argc, char* argv[])
 		}
 		else
 		{	
+			/*
+			memset(buffer, 0, sizeof(buffer));
+			sprintf(buffer, "BEGIN");
+			sendto(socket_fd, buffer, strlen(buffer)+1, 0, (struct sockaddr*)& client_addr, sizeof(client_addr));
+			*/
+			/*
 			memset(buffer, 0, sizeof(buffer));
 			printf("UDP Client: ");
 			fgets(buffer, BUFFER_SIZE, stdin);
@@ -130,8 +132,9 @@ int main(int argc, char* argv[])
 				buffer[recvfrom_return] = 0;
 				printf("Server: %s\n", buffer);
 			}
+			
 		}
 	}
-
+	*/
 	return 0;
 }

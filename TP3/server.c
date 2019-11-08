@@ -22,22 +22,24 @@ int main(int argc, char* argv[])
 {
 	// INITIALIZATION
 	int port_sync, port_data;
-	if (argc < 3)
+	char filename[BUFFER_SIZE];
+	if (argc < 4)
 	{
 		printf("Too few arguments given.\n");
-		printf("Format: ./server <port_sync> <port_data>\n");
+		printf("Format: ./server <port_sync> <port_data> <filename>\n");
 		exit(1);
 	}
-	else if (argc > 3)
+	else if (argc > 4)
 	{
 		printf("Too many arguments given.\n");
-		printf("Format: ./server <port_sync> <port_data>\n");
+		printf("Format: ./server <port_sync> <port_data> <filename>\n");
 		exit(1);
 	}
 	else
 	{
 		port_sync = atoi(argv[1]);
 		port_data = atoi(argv[2]);
+		memcpy(filename, argv[3], sizeof(filename));
 	}
 
 	// SELECT RETURN
@@ -125,6 +127,9 @@ int main(int argc, char* argv[])
 
 	// CONNECTION
 	int online = 1;
+	int sequence_number = 0;
+	char sequence[7] = {0};
+	sprintf(sequence, "%06d", sequence_number); // ZERO-PADDING
 	int sync_done = 0;
 	char buffer[BUFFER_SIZE];
 
@@ -137,7 +142,7 @@ int main(int argc, char* argv[])
 		}
 		FD_SET(socket_data_fd, &read_fd_set);
 
-		if (((select_return = select(10, &read_fd_set, NULL, NULL, NULL))) < 0 && (errno!=EINTR))
+		if (((select_return = select(4, &read_fd_set, NULL, NULL, NULL))) < 0 && (errno!=EINTR))
 		{
 			perror("[-] Select error\n");
 			exit(1);
@@ -146,12 +151,12 @@ int main(int argc, char* argv[])
 		if (FD_ISSET(socket_fd, &read_fd_set))
 		{
 			client_length = sizeof(client_addr);
-			bzero(buffer, sizeof(buffer));
+			memset(buffer, 0, sizeof(buffer));
 			recvfrom(socket_fd, buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, &client_length);
 			if (strstr(buffer, "SYN") != NULL)
 			{
 				memset(buffer, 0, sizeof(buffer));
-				sprintf(buffer, "SYN-ACK-%i", port_data);
+				sprintf(buffer, "SYN-ACK%i", port_data);
 				sendto(socket_fd, buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, sizeof(client_addr));
 
 				recvfrom(socket_fd, buffer, BUFFER_SIZE, 0, (struct sockaddr*) & client_addr, &client_length);
@@ -168,9 +173,16 @@ int main(int argc, char* argv[])
 
 		if (FD_ISSET(socket_data_fd, &read_fd_set))
 		{
+			/*
 			memset(buffer, 0, sizeof(buffer));
 			int recvfrom_return = recvfrom(socket_data_fd, buffer, BUFFER_SIZE, 0, (struct sockaddr*) & client_data_addr, &client_data_length);
-			if (strcmp(buffer, "") != 0)
+			printf("%d\n", recvfrom_return);
+			*/
+			/*
+			// QUESTION 3
+			memset(buffer, 0, sizeof(buffer));
+			int recvfrom_return = recvfrom(socket_data_fd, buffer, BUFFER_SIZE, 0, (struct sockaddr*) & client_data_addr, &client_data_length);
+			if (recvfrom_return != 0)
 			{
 				client_data_IP = inet_ntoa(client_data_addr.sin_addr);
 				client_data_port = ntohs(client_data_addr.sin_port);
@@ -188,6 +200,7 @@ int main(int argc, char* argv[])
 					memset(buffer, 0, sizeof(buffer));
 				}
 			}
+			*/
 		}
 	}
 
