@@ -72,9 +72,7 @@ int main(int argc, char* argv[])
 		memcpy(file_to_get, argv[3], sizeof(file_to_get));
 		memcpy(file_to_send, argv[3], sizeof(file_to_send));
 		extension = get_filename_ext(file_to_get);
-		printf("%s\n", extension);
 		strip_ext(file_to_get);
-		printf("%s\n", file_to_get);
 	}
 
 	// SOCKET OPTION

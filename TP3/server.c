@@ -217,15 +217,20 @@ int main(int argc, char* argv[])
 			ftt_fd = fileno(file_to_transfer);
 			fstat(ftt_fd, &file_info);
 			file_size = file_info.st_size;
-			int iterations = ceil(file_size/(BUFFER_SIZE-6));
-			
-			
-			while (!feof(file_to_transfer))
+
+			printf("File size: %d\n", file_size);
+			char *file_buffer = malloc(file_size+3);
+			if (file_buffer == 0)
 			{
-				fread(data_buffer, BUFFER_SIZE-6, 1, file_to_transfer);
-				printf("%s\n", data_buffer);
+				perror("[-] Allocation error");
+				exit(1);
 			}
-			printf("taille: %d\n", file_size);
+			int ret = fread(file_buffer, 1, file_size, file_to_transfer);
+			fclose(file_to_transfer);
+
+			int file_remainder = file_size%(BUFFER_SIZE-6);
+			int segments = file_size/(BUFFER_SIZE-6) + 1;
+
 			printf("End of loop\n");
 			break;
 			//printf("recvfrom_return: %d\tbuffer: %s\n", recvfrom_return, buffer);
