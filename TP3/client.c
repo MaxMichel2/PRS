@@ -5,16 +5,18 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 #define DOMAIN AF_INET
 #define TYPE SOCK_DGRAM
 #define PROTOCOL 0
-#define BUFFER_SIZE 1025
-#define TIMEOUT_SECONDS 1
-#define TIMEOUT_MICRO 0
+#define BUFFER_SIZE 128
+#define TIMEOUT_SECONDS 0
+#define TIMEOUT_MICRO 5000
 
 int get_data_port(char* buffer)
 {
@@ -24,27 +26,55 @@ int get_data_port(char* buffer)
 	return port_data;
 }
 
+char *get_filename_ext(char *filename) {
+    char *dot = strrchr(filename, '.');
+    if(!dot || dot == filename) return "";
+    return dot + 1;
+}
+
+void strip_ext(char *fname)
+{
+    char *end = fname + strlen(fname);
+
+    while (end > fname && *end != '.' && *end != '\\' && *end != '/') {
+        --end;
+    }
+    if ((end > fname && *end == '.') &&
+        (*(end - 1) != '\\' && *(end - 1) != '/')) {
+        *end = '\0';
+    }  
+}
+
 int main(int argc, char* argv[])
 {
 	// INITIALIZATION
 	int port_sync, port_data;
 	char addr[15];
-	if (argc < 3)
+	char file_to_get[30];
+	char file_to_send[30];
+	char *extension;
+	if (argc < 4)
 	{
 		printf("Too few arguments given.\n");
-		printf("Format: ./client <adresseIP> <port>\n");
+		printf("Format: ./client <adresseIP> <port> <file_to_get>\n");
 		exit(1);
 	}
-	else if (argc > 3)
+	else if (argc > 4)
 	{
 		printf("Too many arguments given.\n");
-		printf("Format: ./client <adresseIP> <port>\n");
+		printf("Format: ./client <adresseIP> <port> <file_to_get>\n");
 		exit(1);
 	}
 	else
 	{
-		strcpy(addr, argv[1]);
+		memcpy(addr, argv[1], sizeof(addr));
 		port_sync = atoi(argv[2]);
+		memcpy(file_to_get, argv[3], sizeof(file_to_get));
+		memcpy(file_to_send, argv[3], sizeof(file_to_send));
+		extension = get_filename_ext(file_to_get);
+		printf("%s\n", extension);
+		strip_ext(file_to_get);
+		printf("%s\n", file_to_get);
 	}
 
 	// SOCKET OPTION
@@ -73,6 +103,29 @@ int main(int argc, char* argv[])
 	client_addr.sin_addr.s_addr = INADDR_ANY;
 
 	socklen_t socket_length = sizeof(client_addr);
+
+	// FILE
+	time_t now = time(NULL);
+	struct tm *t = localtime(&now);
+    char unique[30];
+    strftime(unique, sizeof(unique), "%d-%m-%y_%H-%M-%S.", t);
+	char file_name[60];
+	strcpy(file_name, file_to_get);
+	strcat(file_name, "_received_");
+	strcat(file_name, unique);
+	strcat(file_name, extension);
+	printf("%s\n", file_name);
+	FILE* file_to_receive = fopen(file_name, "w");
+  	if(file_to_receive == NULL)
+	{
+		perror("[-] File open error");
+		exit(1);
+	}
+
+	// TIMEOUT
+	struct timeval timeout;
+	timeout.tv_sec = TIMEOUT_SECONDS;
+	timeout.tv_usec = TIMEOUT_MICRO;
 
 	// CONNECTION
 	int online = 1;
@@ -104,18 +157,20 @@ int main(int argc, char* argv[])
 		}
 		else
 		{	
-			/*
+			
 			memset(buffer, 0, sizeof(buffer));
-			sprintf(buffer, "BEGIN");
+			strcpy(buffer, "BEGIN-");
+			strcat(buffer, file_to_send);
+			//sprintf(buffer, strcat("BEGIN-", file_to_get));
 			sendto(socket_fd, buffer, strlen(buffer)+1, 0, (struct sockaddr*)& client_addr, sizeof(client_addr));
-			*/
+			
 			/*
 			memset(buffer, 0, sizeof(buffer));
 			printf("UDP Client: ");
 			fgets(buffer, BUFFER_SIZE, stdin);
 			buffer[strcspn(buffer, "\n")] = 0;
-			sendto(socket_fd, buffer, sizeof(buffer), 0, (struct sockaddr*)& client_addr, sizeof(client_addr));
-
+			sendto(socket_fd, buffer, strlen(buffer)+1, 0, (struct sockaddr*)& client_addr, sizeof(client_addr));
+			
 			if (strcmp(buffer, ":exit") == 0)
 			{
 				close(socket_fd);
@@ -132,9 +187,9 @@ int main(int argc, char* argv[])
 				buffer[recvfrom_return] = 0;
 				printf("Server: %s\n", buffer);
 			}
-			
+			*/
 		}
 	}
-	*/
+	
 	return 0;
 }
