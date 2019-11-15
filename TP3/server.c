@@ -20,11 +20,8 @@
 #define TIMEOUT_SECONDS 0
 #define TIMEOUT_MICRO 5000
 
-char* next_sequence_number(int *seq_nbr)
+char* pad_sequence_number(int val)
 {
-	(*seq_nbr)++;
-	int val = *seq_nbr;
-	printf("%d\n", val);
 	char *sequence = malloc(6*sizeof(char));
 	sprintf(sequence, "%06d", val); // ZERO-PADDING
 	return sequence;
@@ -143,6 +140,12 @@ int main(int argc, char* argv[])
   	int file_size;
 	struct stat file_info;
 
+	// WINDOW INTERVAL
+	int window_start = 0;
+	int window_end = 0;
+
+	int window_size = 1;
+
 	// TIMEOUT
 	struct timeval timeout;
   	timeout.tv_sec = TIMEOUT_SECONDS;
@@ -151,12 +154,11 @@ int main(int argc, char* argv[])
 	// CONNECTION
 	int online = 1;
 	int sequence_number = 0;
-	int *ptr_sequence_number = &sequence_number;
 	char *sequence = malloc(6*sizeof(char));
 	sprintf(sequence, "%06d", sequence_number); // ZERO-PADDING
 	int sync_done = 0;
-	char buffer[BUFFER_SIZE];
-	char data_buffer[BUFFER_SIZE-6]; // Buffer size without the 6 initial pid digits
+	char send_buffer[BUFFER_SIZE];
+	char recv_buffer[BUFFER_SIZE];
 	char* block = malloc(BUFFER_SIZE-6);
 
 	while(online)
@@ -177,18 +179,18 @@ int main(int argc, char* argv[])
 		if (FD_ISSET(socket_fd, &read_fd_set))
 		{
 			client_length = sizeof(client_addr);
-			memset(buffer, 0, sizeof(buffer));
-			recvfrom(socket_fd, buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, &client_length);
-			if (strstr(buffer, "SYN") != NULL)
+			memset(send_buffer, 0, sizeof(send_buffer));
+			recvfrom(socket_fd, send_buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, &client_length);
+			if (strstr(send_buffer, "SYN") != NULL)
 			{
-				memset(buffer, 0, sizeof(buffer));
-				sprintf(buffer, "SYN-ACK%i", port_data);
-				sendto(socket_fd, buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, sizeof(client_addr));
+				memset(send_buffer, 0, sizeof(send_buffer));
+				sprintf(send_buffer, "SYN-ACK%i", port_data);
+				sendto(socket_fd, send_buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, sizeof(client_addr));
 
-				recvfrom(socket_fd, buffer, BUFFER_SIZE, 0, (struct sockaddr*) & client_addr, &client_length);
-				if (strstr(buffer, "ACK"))
+				recvfrom(socket_fd, send_buffer, BUFFER_SIZE, 0, (struct sockaddr*) & client_addr, &client_length);
+				if (strstr(send_buffer, "ACK"))
 				{
-					memset(buffer, 0, sizeof(buffer));
+					memset(send_buffer, 0, sizeof(send_buffer));
 				}
 			}
 
@@ -200,11 +202,10 @@ int main(int argc, char* argv[])
 		if (FD_ISSET(socket_data_fd, &read_fd_set))
 		{
 			
-			memset(buffer, 0, sizeof(buffer));
-			memset(data_buffer, 0, sizeof(data_buffer));
-			int recvfrom_return = recvfrom(socket_data_fd, buffer, BUFFER_SIZE, 0, (struct sockaddr*) & client_data_addr, &client_data_length);
+			memset(send_buffer, 0, sizeof(send_buffer));
+			int recvfrom_return = recvfrom(socket_data_fd, send_buffer, BUFFER_SIZE, 0, (struct sockaddr*) & client_data_addr, &client_data_length);
 			
-			memcpy(&file_name, buffer+6, recvfrom_return-6);
+			memcpy(&file_name, send_buffer+6, recvfrom_return-6);
 
 			file_to_transfer = fopen(file_name, "rb");
 			printf("File to transfer: %s\n", file_name);
@@ -225,11 +226,49 @@ int main(int argc, char* argv[])
 				perror("[-] Allocation error");
 				exit(1);
 			}
-			int ret = fread(file_buffer, 1, file_size, file_to_transfer);
+			fread(file_buffer, 1, file_size, file_to_transfer);
 			fclose(file_to_transfer);
 
 			int file_remainder = file_size%(BUFFER_SIZE-6);
-			int segments = file_size/(BUFFER_SIZE-6) + 1;
+			int total_segments = file_size/(BUFFER_SIZE-6);
+			
+			printf("Number of packets: %d\nRemainder: %d\n", total_segments, file_remainder);
+
+			int i = 0;
+			window_size = 1;
+			while (window_start < file_size)
+			{
+				window_end = window_start + window_size;
+				if (window_end > total_segments)
+				{
+					window_end = total_segments;
+				}
+				for (sequence_number = window_start; sequence_number <= window_end; sequence_number++)
+				{
+					i = (BUFFER_SIZE - 6) * sequence_number; // i will contain the starting byte
+					sequence = pad_sequence_number(sequence_number);
+					memcpy(send_buffer, sequence, 6);
+
+					if (sequence_number == total_segments)
+					{
+						memcpy(send_buffer+6, file_to_transfer+i, file_remainder);
+					}
+					else
+					{
+						memcpy(send_buffer+6, file_to_transfer+i, BUFFER_SIZE-6);
+					}
+
+					if (sequence_number == total_segments)
+					{
+						sendto(socket_data_fd, send_buffer, file_remainder + 6, 0, (struct sockaddr*) & client_data_addr, client_data_length);
+					}
+					else
+					{
+						sendto(socket_data_fd, send_buffer, BUFFER_SIZE, 0, (struct sockaddr*) & client_data_addr, client_data_length);
+					}
+					printf("Last line of for loop");
+				}
+			}
 
 			printf("End of loop\n");
 			break;
