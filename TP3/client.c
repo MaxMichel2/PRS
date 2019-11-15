@@ -108,10 +108,7 @@ int main(int argc, char* argv[])
     char unique[30];
     strftime(unique, sizeof(unique), "%d-%m-%y_%H-%M-%S.", t);
 	char file_name[60];
-	strcpy(file_name, file_to_get);
-	strcat(file_name, "_received_");
-	strcat(file_name, unique);
-	strcat(file_name, extension);
+	sprintf(file_name, "%s%s%s%s", file_to_get, "_received_", unique, extension);
 	printf("%s\n", file_name);
 	FILE* file_to_receive = fopen(file_name, "w");
   	if(file_to_receive == NULL)
