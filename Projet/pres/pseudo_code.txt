@@ -1,0 +1,27 @@
+Initially:
+cwnd = 1;
+ssthresh = infinite;
+New ack received:
+if (cwnd < ssthresh)
+ /* Slow Start*/
+ cwnd = cwnd + 1;
+else
+ /* Congestion Avoidance */
+ cwnd = cwnd + 1/cwnd;
+Timeout:
+/* Multiplicative decrease */
+ssthresh = cwnd/2;
+cwnd = 1; 
+
+ssthresh = cwnd / 2
+cwnd = ssthresh
+Instead of setting cwnd to 1, cut cwnd in half (multiplicative
+decrease)
+For each dup ack arrival
+dupack++
+Indicates packet left network, so we may be able to send more
+MaxWindow = min(cwnd + dupack, AdvWin)
+Receive ack for new data (beyond initial dup ack)
+dupack = 0
+Exit fast recovery
+But when RTO expires still do cwnd = 1 
