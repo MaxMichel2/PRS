@@ -244,6 +244,7 @@ int main(int argc, char **argv)
         //Taille du fichier
         fseek(fichier, 0L, SEEK_END);
         int sizeoffile = ftell(fichier);
+        printf("file size: %d\n", sizeoffile);
         rewind(fichier); //Se replace au debut du fichier
 
         //Chargement du fichier dans le grandBuffer
