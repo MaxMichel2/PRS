@@ -4,6 +4,18 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
+
+int main()
+{
+    char buffer[6];
+    sprintf(buffer, "SYN");
+
+    if(memcmp(buffer, "SYN", 3) == 0)
+    {
+        printf("Both equal");
+    }
+}
 
 /*
 union

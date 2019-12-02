@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall
-TARGET = temp
+TARGET = serveur1-H4M4C
 
 SRC=$(TARGET:=.c)
 OBJ=$(SRC:.c=.o)
@@ -8,6 +8,7 @@ DEP=$(SRC:.c=.dep)
 TEX=$(SRC:.c=.tex)
 
 all: depend ${TARGET}
+	clear
 
 %.o: %.c
 	${CC} -c ${CFLAGS} $<
