@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
 
     // RECEIVED MESSAGE SIZES
 
-    int syn_size, syn_ack_size, ack_size, req_size, message_size, multi_ack_size, end_size;
+    int syn_size, syn_ack_size, ack_size, req_size, msg_size, multi_ack_size, end_size;
 
     // STRUCTURES
 
@@ -91,6 +91,7 @@ int main(int argc, char* argv[])
     char msg[BUFFER_SIZE];
     char req[BUFFER_SIZE];
     char syn[BUFFER_SIZE];
+    char syn_ack[BUFFER_SIZE];
     char ack[BUFFER_SIZE];
     char multi_ack[9];
 
@@ -122,8 +123,8 @@ int main(int argc, char* argv[])
 
     // STRUCTURE SIZES
 
-    int public_size = sizeof(public);
-    int private_size = sizeof(private);
+    socklen_t public_size = sizeof(public);
+    socklen_t private_size = sizeof(private);
 
     // BINDING
 
@@ -166,7 +167,6 @@ int main(int argc, char* argv[])
 
             // SYN-ACK TRANSMISSION
 
-            char syn_ack[BUFFER_SIZE];
             memset(syn_ack, 0, sizeof(syn_ack));
             sprintf(syn_ack, "SYN-ACK%d", current_port);
             syn_ack_size = sendto(public_socket, syn_ack, BUFFER_SIZE, 0, (struct sockaddr *) &public, public_size);
@@ -195,7 +195,7 @@ int main(int argc, char* argv[])
                 // REQUEST AND FILE OPENING _________________________________________________________________________________________________________________________________________________________________________________________
 
                 memset(req, 0, BUFFER_SIZE);
-                req_size = recvfrom(private_socket, req, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
+                req_size = recvfrom(private_socket, req, BUFFER_SIZE, 0, (struct sockaddr *) &private, &private_size);
                 test_error(req_size, "[-] File request reception error\n");
                 printf("File requested: %s\n", req);
 
@@ -229,7 +229,8 @@ int main(int argc, char* argv[])
                 char* sequence_number;
                 int last_ack = 0;
                 int last_sequence_number = file_size/(BUFFER_SIZE-6) + 1; // +1 for the remainder of the file
-                int window_size = 120;
+                int window_size = 10;
+                int final_sequence_size = file_size - ((last_sequence_number - 1) * (BUFFER_SIZE - 6)) + 6;
 
                 // FILE TRANSMISSION _________________________________________________________________________________________________________________________________________________________________________________________
 
@@ -240,11 +241,59 @@ int main(int argc, char* argv[])
                         for(int i = last_ack + 1; i <= last_ack + window_size; i++)
                         {
                             sequence_number = pad_sequence_number(i);
-                            
+                            memcpy(&msg[0], sequence_number, 6);
+                            memcpy(&msg[6], &large_buffer[(i - 1) * (BUFFER_SIZE - 6)], BUFFER_SIZE - 6);
+                            msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
                         }
                     }
+                    
+                    if(last_ack + window_size >= last_sequence_number)
+                    {
+                        for(int i = last_ack + 1; i < last_sequence_number; i++)
+                        {
+                            memset(msg, 0, BUFFER_SIZE);
+                            sequence_number = pad_sequence_number(i);
+                            memcpy(&msg[0], sequence_number, 6);
+                            memcpy(&msg[6], &large_buffer[(i - 1) * (BUFFER_SIZE - 6)], BUFFER_SIZE - 6);
+                            msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
+                        }
+
+                        memset(msg, 0, BUFFER_SIZE);
+                        sequence_number = pad_sequence_number(last_sequence_number);
+                        memcpy(&msg[0], sequence_number, 6);
+                        memcpy(&msg[6], &large_buffer[(last_sequence_number - 1) * (BUFFER_SIZE - 6)], final_sequence_size);
+                        msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
+                    }
+
+                    multi_ack_size = recvfrom(private_socket, multi_ack, 9, 0, (struct sockaddr *) &private, &private_size);
+                    last_ack = atoi(&multi_ack[3]);
+                    printf("multi_ack[3] value: %d\n", atoi(&multi_ack[3]));
+                    printf("last_ack value: %d\n", last_ack);                   
                 }
+
+                // END _________________________________________________________________________________________________________________________________________________________________________________________
+
+                // TIMER END
+
+                long int end_time = clock();
+                float duration = (float) ((end_time - start_time)/CLOCKS_PER_SEC);
+
+                printf("Speed (kb/s): %f\n", (float) (file_size/(1024 * duration)));
+
+                memset(msg, 0, BUFFER_SIZE);
+                sprintf(msg, "FIN");
+
+                for(int i = 0; i < 200; i++)
+                {
+                    end_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
+                }
+
+                test_error(end_size, "[-] \"FIN\" transmission error\n");
+                close(private_socket);
+                memset(syn_ack, 0, BUFFER_SIZE);
+                main_loop = 0;
             }
         }
     }
+    close(public_socket);
 }

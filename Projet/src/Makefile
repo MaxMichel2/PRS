@@ -8,7 +8,6 @@ DEP=$(SRC:.c=.dep)
 TEX=$(SRC:.c=.tex)
 
 all: depend ${TARGET}
-	clear
 
 %.o: %.c
 	${CC} -c ${CFLAGS} $<
