@@ -265,6 +265,7 @@ int main(int argc, char* argv[])
                         memcpy(msg+6, &large_buffer[(last_sequence_number - 1) * (BUFFER_SIZE - 6)], final_sequence_size);
                         msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
                     }
+
                     memset(multi_ack, 0, sizeof(multi_ack));
                     multi_ack_size = recvfrom(private_socket, multi_ack, 9, 0, (struct sockaddr *) &private, &private_size);
                     last_ack = atoi(&multi_ack[3]);
