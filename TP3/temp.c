@@ -9,12 +9,16 @@
 int main()
 {
     char buffer[6];
+    char ack[9] = "ACK060015";
     sprintf(buffer, "SYN");
 
     if(memcmp(buffer, "SYN", 3) == 0)
     {
-        printf("Both equal");
+        printf("Both equal\n");
     }
+
+    int val = atoi(&ack[3]);
+    printf("Value: %d\n", val);
 }
 
 /*

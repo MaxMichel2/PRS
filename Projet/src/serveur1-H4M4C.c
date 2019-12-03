@@ -240,6 +240,7 @@ int main(int argc, char* argv[])
                     {
                         for(int i = last_ack + 1; i <= last_ack + window_size; i++)
                         {
+                            memset(msg, 0, BUFFER_SIZE);
                             sequence_number = pad_sequence_number(i);
                             memcpy(&msg[0], sequence_number, 6);
                             memcpy(&msg[6], &large_buffer[(i - 1) * (BUFFER_SIZE - 6)], BUFFER_SIZE - 6);
@@ -253,18 +254,18 @@ int main(int argc, char* argv[])
                         {
                             memset(msg, 0, BUFFER_SIZE);
                             sequence_number = pad_sequence_number(i);
-                            memcpy(&msg[0], sequence_number, 6);
-                            memcpy(&msg[6], &large_buffer[(i - 1) * (BUFFER_SIZE - 6)], BUFFER_SIZE - 6);
+                            memcpy(msg, sequence_number, 6);
+                            memcpy(msg+6, &large_buffer[(i - 1) * (BUFFER_SIZE - 6)], BUFFER_SIZE - 6);
                             msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
                         }
 
                         memset(msg, 0, BUFFER_SIZE);
                         sequence_number = pad_sequence_number(last_sequence_number);
-                        memcpy(&msg[0], sequence_number, 6);
-                        memcpy(&msg[6], &large_buffer[(last_sequence_number - 1) * (BUFFER_SIZE - 6)], final_sequence_size);
+                        memcpy(msg, sequence_number, 6);
+                        memcpy(msg+6, &large_buffer[(last_sequence_number - 1) * (BUFFER_SIZE - 6)], final_sequence_size);
                         msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
                     }
-
+                    memset(multi_ack, 0, sizeof(multi_ack));
                     multi_ack_size = recvfrom(private_socket, multi_ack, 9, 0, (struct sockaddr *) &private, &private_size);
                     last_ack = atoi(&multi_ack[3]);
                     printf("multi_ack[3] value: %d\n", atoi(&multi_ack[3]));
