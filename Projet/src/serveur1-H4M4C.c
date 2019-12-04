@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
     char syn[BUFFER_SIZE];
     char syn_ack[BUFFER_SIZE];
     char ack[BUFFER_SIZE];
-    char multi_ack[9];
+    char multi_ack[10]="\0";
 
     // INITIALIZATION _________________________________________________________________________________________________________________________________________________________________________________________
 
@@ -267,15 +267,10 @@ int main(int argc, char* argv[])
                     }
 
                     memset(multi_ack, 0, sizeof(multi_ack));
-                    multi_ack_size = recvfrom(private_socket, multi_ack, 9, 0, (struct sockaddr *) &private, &private_size);
-                    char seq[7] = "\0";
-                    memset(seq, 0, 7);
-                    memcpy(seq, multi_ack+3, 6);
-                    int sequence = atoi(seq);
-                    printf("sequence: %d\n", sequence);
-                    last_ack = sequence;
-                    printf("multi_ack[3] value: %d\n", atoi(&multi_ack[3]));
-                    printf("last_ack value: %d\n", last_ack);                   
+                    multi_ack_size = recvfrom(private_socket, multi_ack, 10, 0, (struct sockaddr *) &private, &private_size);
+                    multi_ack[10]="\0";
+                    printf("multi_ack[3] = %d\n", atoi(&multi_ack[3]));
+                    last_ack = atoi(&multi_ack[3]);
                 }
 
                 // END _________________________________________________________________________________________________________________________________________________________________________________________
