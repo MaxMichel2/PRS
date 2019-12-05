@@ -274,11 +274,20 @@ int main(int argc, char* argv[])
                 {
                     previous_ack = last_ack;
                     last_ack = atoi(&multi_ack[3]);
+                    
+                    if(window_size > 1)
+                    {
+                        window_size = floor(window_size/2);
+                    }
 
                     if(previous_ack == last_ack)
                     {
                         last_ack++;
                     }
+                }
+                else
+                {
+                    window_size += 1;
                 }
 
             }
