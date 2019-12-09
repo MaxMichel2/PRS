@@ -1,5 +1,6 @@
 CC = gcc
 CFLAGS = -Wall
+LDFLAGS = -pthread -lpthread
 TARGET = serveur1-H4M4C
 
 SRC=$(TARGET:=.c)
@@ -10,10 +11,10 @@ TEX=$(SRC:.c=.tex)
 all: depend ${TARGET}
 
 %.o: %.c
-	${CC} -c ${CFLAGS} $<
+	${CC} -c ${CFLAGS} $< $(LDFLAGS)
 
 %: %.o
-	${CC} $< -o $@
+	${CC} $< -o $@ $(LDFLAGS)
 
 clean:
 	-rm -f *.o ${BIN} ${TEX} ${DEP} *~ ${TARGET}

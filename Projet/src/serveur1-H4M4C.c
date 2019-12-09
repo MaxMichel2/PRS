@@ -31,7 +31,23 @@
 
 char large_buffer[5000000000];
 
+int* ack_received = NULL;
+
+// STRUCTURE FOR THREAD
+
+struct ack_thread_args {
+    char thread_multi_ack[BUFFER_SIZE];
+    int thread_multi_ack_size;
+    int thread_private_socket;
+    struct sockaddr_in thread_private;
+    socklen_t thread_private_size;
+    int thread_window_size;
+    int thread_return_last_ack;
+};
+
 // FUNCTIONS _________________________________________________________________________________________________________________________________________________________________________________________
+
+// PAD SEQUENCE
 
 char* pad_sequence_number(int val)
 {
@@ -39,6 +55,8 @@ char* pad_sequence_number(int val)
 	sprintf(sequence, "%06d", val); // ZERO-PADDING
 	return sequence;
 }
+
+// CHECK ARGUMENTS
 
 void arguments(int argc, char* argv[]) // à tester !
 {
@@ -50,6 +68,8 @@ void arguments(int argc, char* argv[]) // à tester !
   return;
 }
 
+// TEST ERRORS
+
 int test_error(int n, char* msg)
 {
     if(n < 0)
@@ -60,6 +80,48 @@ int test_error(int n, char* msg)
     else
     {
         return 1;
+    }
+}
+
+// ACK RECEIVE
+
+void *ack_receive(void* _args)
+{
+    struct ack_thread_args *args = (struct ack_thread_args *) _args; 
+    int last_ack = 0;
+    int previous_ack = 0;
+    while(1)
+    {
+        memset(args->thread_multi_ack, 0, sizeof(args->thread_multi_ack));
+        args->thread_multi_ack_size = recvfrom(args->thread_private_socket, args->thread_multi_ack, 10, MSG_DONTWAIT, (struct sockaddr *) &(args->thread_private), &(args->thread_private_size));
+        args->thread_multi_ack[10]="\0";
+        
+        
+        int i = 0;
+
+        if(args->thread_multi_ack_size != -1)
+        {
+            previous_ack = last_ack;
+            last_ack = atoi(&(args->thread_multi_ack[3]));
+            if(ack_received[last_ack-1] == 0)
+            {
+                for(i = 0; i < last_ack-1; i++)
+                {
+                    ack_received[i] = 1;
+                }
+            }
+            args->thread_return_last_ack = last_ack;
+        }
+    }
+}
+
+// INITIALIZE ACK ARRAY
+
+void ack_array_setup(int size)
+{
+    if(!ack_received)
+    {
+        ack_received = (int *) calloc((size-1), sizeof(int));
     }
 }
 
@@ -198,10 +260,6 @@ int main(int argc, char* argv[])
             req_size = recvfrom(private_socket, req, BUFFER_SIZE, 0, (struct sockaddr *) &private, &private_size);
             test_error(req_size, "[-] File request reception error\n");
             printf("File requested: %s\n", req);
-
-            // TIMER START
-
-            long int start_time = clock();
             
             // FILE OPENING
 
@@ -230,34 +288,66 @@ int main(int argc, char* argv[])
             int last_ack = 0;
             int previous_ack = 0;
             int last_sequence_number = file_size/(BUFFER_SIZE-6) + 1; // +1 for the remainder of the file
-            int window_size = 1;
+            int window_size = 60;
             int final_sequence_size = file_size - ((last_sequence_number - 1) * (BUFFER_SIZE - 6)) + 6;
+            int timeout_flag = 0;
+            float timeout = 0.5;
 
+            // TIMER START
+
+            long int start_time = clock();
+
+            // THREAD SETUP
+            
+            struct ack_thread_args *thread_args = malloc(sizeof(struct ack_thread_args));
+            //strncpy(thread_args->thread_multi_ack, ack, BUFFER_SIZE);
+            thread_args->thread_multi_ack_size = ack_size;
+            thread_args->thread_private = private;
+            thread_args->thread_private_socket = private_socket;
+            thread_args->thread_private_size = private_size;
+            thread_args->thread_window_size = window_size;
+
+            ack_array_setup(last_sequence_number);
+
+            // RUN THREAD
+            
+            pthread_t receive_thread;
+
+            if(pthread_create(&receive_thread, NULL, ack_receive, (void *) thread_args) == -1)
+            {
+                perror("[-] Thread creation error.\n");
+                return EXIT_FAILURE;
+            }
+            
             // FILE TRANSMISSION _________________________________________________________________________________________________________________________________________________________________________________________
 
             while(last_ack != last_sequence_number)
             {
                 if(last_ack + window_size < last_sequence_number)
                 {
-                    for(int i = last_ack + 1; i <= last_ack + window_size; i++)
+                    int i = last_ack + 1;
+                    while (i <= last_ack + window_size)
                     {
                         memset(msg, 0, BUFFER_SIZE);
                         sequence_number = pad_sequence_number(i);
                         memcpy(&msg[0], sequence_number, 6);
                         memcpy(&msg[6], &large_buffer[(i - 1) * (BUFFER_SIZE - 6)], BUFFER_SIZE - 6);
                         msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
+                        i++;
                     }
                 }
                 
                 if(last_ack + window_size >= last_sequence_number)
                 {
-                    for(int i = last_ack + 1; i < last_sequence_number; i++)
+                    int i = last_ack + 1;
+                    while(i < last_sequence_number)
                     {
                         memset(msg, 0, BUFFER_SIZE);
                         sequence_number = pad_sequence_number(i);
                         memcpy(msg, sequence_number, 6);
                         memcpy(msg+6, &large_buffer[(i - 1) * (BUFFER_SIZE - 6)], BUFFER_SIZE - 6);
                         msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
+                        i++;
                     }
 
                     memset(msg, 0, BUFFER_SIZE);
@@ -266,30 +356,16 @@ int main(int argc, char* argv[])
                     memcpy(msg+6, &large_buffer[(last_sequence_number - 1) * (BUFFER_SIZE - 6)], final_sequence_size);
                     msg_size = sendto(private_socket, msg, final_sequence_size, 0, (struct sockaddr *) &private, private_size);
                 }
-                            
-                memset(multi_ack, 0, sizeof(multi_ack));
-                multi_ack_size = recvfrom(private_socket, multi_ack, 10, MSG_DONTWAIT, (struct sockaddr *) &private, &private_size);
-                multi_ack[10]="\0";
-                if(multi_ack_size != -1)
+                
                 {
                     previous_ack = last_ack;
-                    last_ack = atoi(&multi_ack[3]);
-                    
-                    if(window_size > 1)
-                    {
-                        window_size = floor(window_size/2);
-                    }
+                    last_ack = thread_args->thread_return_last_ack;
 
                     if(previous_ack == last_ack)
                     {
                         last_ack++;
                     }
                 }
-                else
-                {
-                    window_size += 1;
-                }
-
             }
 
             // END _________________________________________________________________________________________________________________________________________________________________________________________
