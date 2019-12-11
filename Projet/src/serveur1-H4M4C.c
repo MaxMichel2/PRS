@@ -36,13 +36,16 @@ int* ack_received = NULL;
 // STRUCTURE FOR THREAD
 
 struct ack_thread_args {
-    char thread_multi_ack[BUFFER_SIZE];
+    char thread_multi_ack[10];
     int thread_multi_ack_size;
     int thread_private_socket;
     struct sockaddr_in thread_private;
     socklen_t thread_private_size;
     int thread_window_size;
     int thread_return_last_ack;
+    char thread_msg[BUFFER_SIZE];
+    char* thread_sequence_number;
+    int thread_msg_size;
 };
 
 // FUNCTIONS _________________________________________________________________________________________________________________________________________________________________________________________
@@ -93,7 +96,7 @@ void *ack_receive(void* _args)
     while(1)
     {
         memset(args->thread_multi_ack, 0, sizeof(args->thread_multi_ack));
-        args->thread_multi_ack_size = recvfrom(args->thread_private_socket, args->thread_multi_ack, 10, MSG_DONTWAIT, (struct sockaddr *) &(args->thread_private), &(args->thread_private_size));
+        args->thread_multi_ack_size = recvfrom(args->thread_private_socket, args->thread_multi_ack, 10, MSG_WAITALL, (struct sockaddr *) &(args->thread_private), &(args->thread_private_size));
         args->thread_multi_ack[10]="\0";
         
         
@@ -111,6 +114,14 @@ void *ack_receive(void* _args)
                 }
             }
             args->thread_return_last_ack = last_ack;
+        }
+        else
+        {
+            memset(args->thread_msg, 0, BUFFER_SIZE);
+            args->thread_sequence_number = pad_sequence_number(last_ack);
+            memcpy(&(args->thread_msg[0]), args->thread_sequence_number, 6);
+            memcpy(&(args->thread_msg[6]), &large_buffer[(last_ack - 1) * (BUFFER_SIZE - 6)], BUFFER_SIZE - 6);
+            args->thread_msg_size = sendto(args->thread_private_socket, args->thread_msg, BUFFER_SIZE, 0, (struct sockaddr *) &(args->thread_private), args->thread_private_size);
         }
     }
 }
@@ -192,6 +203,12 @@ int main(int argc, char* argv[])
 
     bind(public_socket, (struct sockaddr *) &public, public_size);
 
+    // TIMEOUT
+
+    struct timeval socket_timeout;
+    socket_timeout.tv_sec = 0;
+    socket_timeout.tv_usec = 500;
+
     // MAIN INFINITE LOOP _________________________________________________________________________________________________________________________________________________________________________________________
 
     int main_loop = 1;
@@ -210,6 +227,7 @@ int main(int argc, char* argv[])
 
             private_socket = socket(DOMAIN, TYPE, PROTOCOL);
             test_error(private_socket, "[-] Private socket opening error\n");
+            setsockopt(private_socket, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *) &socket_timeout, sizeof(struct timeval));
 
             // PRIVATE PORT SELECTION
 
@@ -290,8 +308,6 @@ int main(int argc, char* argv[])
             int last_sequence_number = file_size/(BUFFER_SIZE-6) + 1; // +1 for the remainder of the file
             int window_size = 60;
             int final_sequence_size = file_size - ((last_sequence_number - 1) * (BUFFER_SIZE - 6)) + 6;
-            int timeout_flag = 0;
-            float timeout = 0.5;
 
             // TIMER START
 
@@ -300,7 +316,6 @@ int main(int argc, char* argv[])
             // THREAD SETUP
             
             struct ack_thread_args *thread_args = malloc(sizeof(struct ack_thread_args));
-            //strncpy(thread_args->thread_multi_ack, ack, BUFFER_SIZE);
             thread_args->thread_multi_ack_size = ack_size;
             thread_args->thread_private = private;
             thread_args->thread_private_socket = private_socket;
@@ -380,7 +395,7 @@ int main(int argc, char* argv[])
             memset(msg, 0, BUFFER_SIZE);
             sprintf(msg, "FIN");
 
-            for(int i = 0; i < 200; i++)
+            for(int i = 0; i < 10; i++)
             {
                 end_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
             }
