@@ -111,17 +111,21 @@ void *ack_receive(void* _args)
             last_ack = atoi(&(args->thread_multi_ack[3]));
             if(ack_received[last_ack-1] == 0)//si l'on a pas déjà reçu le segment
             {
-                for(i = 0; i < last_ack-1; i++)//on acquitte tous les segments antérieurs
+                for(i = 0; i <= last_ack-1; i++)//on acquitte tous les segments antérieurs
                 {
                     ack_received[i] = 1;
                 }
+                /*
                 if(args->thread_window_size <= args->thread_ssthresh/2){
+                  args->thread_window_size = args->thread_window_size*2;
+                  printf("slow start\n");
+                } else {*/
                   args->thread_window_size ++;
-                } else {
-                  args->thread_window_size += 1/args->thread_window_size;
+                  printf("congestion avoidance\n");
                   printf("[+] window_size %d\n", args->thread_window_size);
                   printf("[+] ssthresh %d\n", args->thread_ssthresh);
-                }
+                //}
+
             }
             if(ack_received[last_ack-1] == 1){//si l'on reçoit un ack antérieur, il y a eu un drop
               args->thread_duplicate_ack ++;
@@ -129,13 +133,16 @@ void *ack_receive(void* _args)
                 args->thread_ssthresh = args->thread_window_size/2;
                 args->thread_msg_size = sendto(args->thread_private_socket, args->thread_msg, BUFFER_SIZE, 0, (struct sockaddr *) &(args->thread_private), args->thread_private_size);
                 args->thread_window_size = args->thread_ssthresh + 3;
+                printf("fast retransmit\n");
+                args->thread_duplicate_ack = 0;
               }
               args->thread_ssthresh = args->thread_window_size/2;
               args->thread_msg_drop ++;
-              args->thread_duplicate_ack = 0;
+
             }
             args->thread_return_last_ack = last_ack;
-      }
+            //printf("drop\n");
+          }
       else
       {
           memset(args->thread_msg, 0, BUFFER_SIZE);
@@ -144,8 +151,9 @@ void *ack_receive(void* _args)
           memcpy(&(args->thread_msg[6]), &large_buffer[(last_ack - 1) * (BUFFER_SIZE - 6)], BUFFER_SIZE - 6);
           args->thread_msg_size = sendto(args->thread_private_socket, args->thread_msg, BUFFER_SIZE, 0, (struct sockaddr *) &(args->thread_private), args->thread_private_size);
           args->thread_ssthresh = args->thread_window_size/2;
-          //args-> thread_window_size = 20;
+          args-> thread_window_size = 150;
           args -> thread_msg_drop ++;
+          printf("timeout\n");
       }
     }
 }
@@ -230,8 +238,8 @@ int main(int argc, char* argv[])
     // TIMEOUT
 
     struct timeval socket_timeout;
-    socket_timeout.tv_sec = 0.9;
-    socket_timeout.tv_usec = 500;
+    socket_timeout.tv_sec = 0;
+    socket_timeout.tv_usec = 90000;
 
     // MAIN INFINITE LOOP _________________________________________________________________________________________________________________________________________________________________________________________
 
@@ -330,7 +338,7 @@ int main(int argc, char* argv[])
             int last_ack = 0;
             int previous_ack = 0;
             int last_sequence_number = file_size/(BUFFER_SIZE-6) + 1; // +1 for the remainder of the file
-            int window_size = 20;
+            int window_size = 150;
             int ssthresh = 65535;
             int final_sequence_size = file_size - ((last_sequence_number - 1) * (BUFFER_SIZE - 6)) + 6;
             int duplicate_ack = 0;
@@ -422,12 +430,9 @@ int main(int argc, char* argv[])
             printf("Speed (kb/s): %f\n", (float) (file_size/(1024 * duration)));
             printf("Pertes du réseau : %d messages \n", thread_args-> thread_msg_drop);
 
-            memset(msg, 0, BUFFER_SIZE);
-            sprintf(msg, "FIN");
-
-            for(int i = 0; i < 10; i++)
+            for(int i = 0; i < 10000; i++)
             {
-                end_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
+                end_size = sendto(private_socket, "FIN", 3, 0, (struct sockaddr *) &private, private_size);
             }
 
             test_error(end_size, "[-] \"FIN\" transmission error\n");
