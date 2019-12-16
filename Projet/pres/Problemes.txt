@@ -1,0 +1,9 @@
+Client1:
+	- Drop 1 fenêtre par intervalle de fenêtre
+	- Envoie 15000 fois le même ACK
+
+Client2:
+	- Drop à peu près tout le temps
+	- Probabilité de drop un message
+
+Solutions:
