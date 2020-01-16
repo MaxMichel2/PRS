@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall
 LDFLAGS = -pthread -lpthread
-TARGET = serveur1-H4M4C
+TARGET = serveur1-H4M4C serveur-test
 
 SRC=$(TARGET:=.c)
 OBJ=$(SRC:.c=.o)
