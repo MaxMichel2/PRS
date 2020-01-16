@@ -144,7 +144,7 @@ int main(int argc, char* argv[])
 
         if((test_error(syn_size, "[-] \"SYN\" reception error\n")) && (memcmp(syn, "SYN", 3) == 0))
         {
-            // PRIVATE SOCKETsetsockopt(private_socket, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *) &socket_timeout, sizeof(struct timeval));
+            // PRIVATE SOCKET
 
             private_socket = socket(DOMAIN, TYPE, PROTOCOL);
             test_error(private_socket, "[-] Private socket opening error\n");
@@ -155,52 +155,52 @@ int main(int argc, char* argv[])
             private.sin_family = DOMAIN;
             private.sin_addr.s_addr = htonl(INADDR_ANY);
             private.sin_port = htons(MIN_PORT);
-						//Gauthier commence à fork ici
-						int current_port = MIN_PORT;
+			//Gauthier commence à fork ici
+			int current_port = MIN_PORT;
 
-						while((bind(private_socket, (struct sockaddr *) &private, sizeof(private)) < 0) && (current_port <= MAX_PORT))
-						{
-								current_port++;
-								private.sin_port = htons(current_port);
-						}
-						printf("Detected port for client: %d\n", current_port);
-						// SYN-ACK TRANSMISSION
+			while((bind(private_socket, (struct sockaddr *) &private, sizeof(private)) < 0) && (current_port <= MAX_PORT))
+			{
+					current_port++;
+					private.sin_port = htons(current_port);
+			}
+			printf("Detected port for client: %d\n", current_port);
+			// SYN-ACK TRANSMISSION
 
-						memset(syn_ack, 0, sizeof(syn_ack));
-						sprintf(syn_ack, "SYN-ACK%d", current_port);
-						syn_ack_size = sendto(public_socket, syn_ack, BUFFER_SIZE, 0, (struct sockaddr *) &public, public_size);
-						test_error(syn_ack_size, "[-] \"SYN-ACK\" transmission error\n");
+			memset(syn_ack, 0, sizeof(syn_ack));
+			sprintf(syn_ack, "SYN-ACK%d", current_port);
+			syn_ack_size = sendto(public_socket, syn_ack, BUFFER_SIZE, 0, (struct sockaddr *) &public, public_size);
+			test_error(syn_ack_size, "[-] \"SYN-ACK\" transmission error\n");
 
-						// ACK RECEPTION
+			// ACK RECEPTION
 
-						memset(ack, 0, sizeof(ack));
-						ack_size = recvfrom(public_socket, ack, BUFFER_SIZE, 0, (struct sockaddr *) &public, &public_size);
-						test_error(ack_size, "[-] recvfrom error\n");
+			memset(ack, 0, sizeof(ack));
+			ack_size = recvfrom(public_socket, ack, BUFFER_SIZE, 0, (struct sockaddr *) &public, &public_size);
+			test_error(ack_size, "[-] recvfrom error\n");
 
-						if(memcmp(ack, "ACK", 3) != 0)
-						{
-								perror("[-] \"ACK\" reception error\n");
-								return 0;
-						}
-						printf("Connection established: SYN = %s, SYN-ACK = %s, ACK = %s\n", syn, syn_ack, ack);
+			if(memcmp(ack, "ACK", 3) != 0)
+			{
+					perror("[-] \"ACK\" reception error\n");
+					return 0;
+			}
+			printf("Connection established: SYN = %s, SYN-ACK = %s, ACK = %s\n", syn, syn_ack, ack);
             // CONNECTION ESTABLISHED
         }
 
         multi = fork();
-				if(multi == -1){
-					printf("Erreur de fork \n");
-					break;
-				}
-				if (multi > 0)
-				{
-					close(private_socket);
-					printf("Bienvenue dans le processus père %d\n", multi);
-				}
+		if(multi == -1){
+			printf("Erreur de fork \n");
+			break;
+		}
+		if (multi > 0)
+		{
+			close(private_socket);
+			printf("Bienvenue dans le processus père %d\n", multi);
+		}
         if(multi == 0)
         {
 
-						close(public_socket); //élimination des copies de SOCKET
-						printf("Bienvenue dans le processus fils %d\n", multi);
+			close(public_socket); //élimination des copies de SOCKET
+			printf("Bienvenue dans le processus fils %d\n", multi);
 
             // REQUEST AND FILE OPENING _________________________________________________________________________________________________________________________________________________________________________________________
 
