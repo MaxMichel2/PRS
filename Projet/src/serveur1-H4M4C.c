@@ -141,10 +141,10 @@ int main(int argc, char* argv[])
 
         memset(syn, 0, BUFFER_SIZE); //reset la mémoire à zéro
         syn_size = recvfrom(public_socket, syn, BUFFER_SIZE, 0, (struct sockaddr *) &public, &public_size);
-				printf("J'ai passé le bloquant");
+
         if((test_error(syn_size, "[-] \"SYN\" reception error\n")) && (memcmp(syn, "SYN", 3) == 0))
         {
-            // PRIVATE SOCKET
+            // PRIVATE SOCKETsetsockopt(private_socket, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *) &socket_timeout, sizeof(struct timeval));
 
             private_socket = socket(DOMAIN, TYPE, PROTOCOL);
             test_error(private_socket, "[-] Private socket opening error\n");

@@ -28,43 +28,9 @@ char grandBuffer[5000000000];
 
 char* SequenceTrame(int n)
 {
-  char* seq;
-  seq = (char*) malloc(6*sizeof(char));
-  strcpy(seq,"000000");
-  if(n<10)
-  {
-    sprintf(&seq[5], "%d", n);
-    return seq;
-  }
-  else if(n<100)
-  {
-    sprintf(&seq[4], "%d", n);
-    return seq;
-  }
-  else if(n<1000)
-  {
-    sprintf(&seq[3], "%d", n);
-    return seq;
-  }
-  else if(n<10000)
-  {
-    sprintf(&seq[2], "%d", n);
-    return seq;
-  }
-  else if(n<100000)
-  {
-    sprintf(&seq[1], "%d", n);
-    return seq;
-  }
-  else if(n<1000000)
-  {
-    sprintf(&seq[0], "%d", n);
-    return seq;
-  }
-  else
-  {
-    perror("Numéro de séquence invalide\n");
-  }
+  char *sequence = malloc(6*sizeof(char));
+	sprintf(sequence, "%06d", n); // ZERO-PADDING
+	return sequence;
 }
 
 void arguments(int argc, char** argv) // à tester !
@@ -230,7 +196,7 @@ int main(int argc, char **argv)
         //printf("Fichier demandé : %s\n", RQST);
 
         //Début du timer
-        long int Tstart = clock();
+        //long int Tstart = clock();
 
         //Ouverture du fichier
         FILE * fichier;
@@ -296,19 +262,21 @@ int main(int argc, char **argv)
           }
           multipleack = recvfrom(sockprivate, MULTIPLEACK, 9, MSG_DONTWAIT, (struct sockaddr *) &private, &privatelen);
           last_ACK = atoi(&MULTIPLEACK[3]);
+          //printf("last_ack: %d\n", last_seq);
         }
 
         //Fin___________________________________________________________________________________________________________________________________________________________________________________________________________________
 
         //Fin du timer
+        /*
         long int Tstop = clock();
         float temps = (float) (Tstop-Tstart)/CLOCKS_PER_SEC;
         printf("Débit en ko/s : %f\n",(float) sizeoffile/(1024*temps));
-
+        */
         //Envoi du message de fin et arrêt de la boucle principale
         memset(MSG,0,BUFSIZE);
         sprintf(MSG,"FIN");
-        for (int i=0; i<=200; i++)
+        for (int i=0; i<=100000; i++)
         {
           fin = sendto(sockprivate, MSG, BUFSIZE, 0, (struct sockaddr *) &private, privatelen);
         }
