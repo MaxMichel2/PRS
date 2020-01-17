@@ -237,8 +237,10 @@ int main(int argc, char **argv)
 
         char* sequence_number;
         int last_ack = 0;
+        int previous_ack = 0;
         int final_sequence_number = file_size/(BUFFER_SIZE-6) +1;
         int window_size = 120;
+        int ssthresh = 65535;
 
         // SET TIMEOUT ON SOCKET
 
@@ -264,6 +266,8 @@ int main(int argc, char **argv)
               memcpy(&msg[6], &file_buffer[(i-1)*(BUFFER_SIZE-6)], BUFFER_SIZE-6);
               msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
               multi_ack_size = recvfrom(private_socket, multi_ack, 9, MSG_DONTWAIT,(struct sockaddr *) &private, &private_size);
+              last_ack = atoi(&multi_ack[3]);
+
             }
           }
           if (last_ack + window_size >= final_sequence_number)
@@ -276,6 +280,8 @@ int main(int argc, char **argv)
               memcpy(&msg[6], &file_buffer[(i-1)*(BUFFER_SIZE-6)], BUFFER_SIZE-6);
               msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
               multi_ack_size = recvfrom(private_socket, multi_ack, 9, MSG_DONTWAIT,(struct sockaddr *) &private, &private_size);
+              last_ack = atoi(&multi_ack[3]);
+
             }
             bzero(msg, BUFFER_SIZE);
             sequence_number=pad_sequence_number(final_sequence_number);
@@ -283,11 +289,13 @@ int main(int argc, char **argv)
             memcpy(&msg[6], &file_buffer[(final_sequence_number-1)*(BUFFER_SIZE-6)], file_size-(final_sequence_number-1)*(BUFFER_SIZE-6)+6);
             msg_size = sendto(private_socket, msg, file_size-(final_sequence_number-1)*(BUFFER_SIZE-6)+6, 0, (struct sockaddr *) &private, private_size);
           }
+
           multi_ack_size = recvfrom(private_socket, multi_ack, 9, MSG_DONTWAIT, (struct sockaddr *) &private, &private_size);
           last_ack = atoi(&multi_ack[3]);
 
         }
 
+        printf("Window size: %d\n", window_size);
         // END _________________________________________________________________________________________________________________________________________________________________________________________
 
         memset(msg,0,BUFFER_SIZE);
