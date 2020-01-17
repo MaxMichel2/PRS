@@ -1,0 +1,3 @@
+1. Slow start to find the correct window sizes (Server 1 & 2)
+2. Find correct optimisation based on the behaviour of each client (PDF was found online)
+	-https://tools.ietf.org/html/rfc2001?fbclid=IwAR0W8AZGYscABqWZsn3OYx17QjBaVVQhkEDt9OunkXGgF6-b3qQfQxKBq1Q
