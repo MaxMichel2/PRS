@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall
-TARGET = serv1 serv2 serv3 test
+TARGET = serv1 serv2 serv3
 
 SRC=$(TARGET:=.c)
 OBJ=$(SRC:.c=.o)
