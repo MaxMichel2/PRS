@@ -292,8 +292,8 @@ int main(int argc, char **argv)
           }
 
           multi_ack_size = recvfrom(private_socket, multi_ack, 9, MSG_DONTWAIT, (struct sockaddr *) &private, &private_size);
-          ack_received = atoi(&multi_ack[3]);
-
+          last_ack = atoi(&multi_ack[3]);
+          /*
           if(ack_received > last_ack )
           {
             last_ack = ack_received;
@@ -308,17 +308,20 @@ int main(int argc, char **argv)
           usleep(0.001);
           if(ack_received <= last_ack)
           {
-            /*dupl++;
-            ssthreshold/2;*/
+            //dupl++;
+            //ssthreshold/2;
             //window_size = window_size /2;
-            /*if(dupl > 3){*/
-            bzero(msg, BUFFER_SIZE);
-            sequence_number=pad_sequence_number(ack_received);
-            memcpy(&msg[0], sequence_number, 6);
-            memcpy(&msg[6], &file_buffer[(ack_received-1)*(BUFFER_SIZE-6)], BUFFER_SIZE-6);
-            msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
-            //dupl = 0;
+            if(dupl > 3)
+            {
+              bzero(msg, BUFFER_SIZE);
+              sequence_number=pad_sequence_number(ack_received);
+              memcpy(&msg[0], sequence_number, 6);
+              memcpy(&msg[6], &file_buffer[(ack_received-1)*(BUFFER_SIZE-6)], BUFFER_SIZE-6);
+              msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
+              //dupl = 0;
+            }
           }
+          */
         }
 
         // END _________________________________________________________________________________________________________________________________________________________________________________________
