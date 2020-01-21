@@ -267,7 +267,7 @@ int main(int argc, char **argv)
               memcpy(&msg[6], &file_buffer[(i-1)*(BUFFER_SIZE-6)], BUFFER_SIZE-6);
               msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
               multi_ack_size = recvfrom(private_socket, multi_ack, 9, MSG_DONTWAIT,(struct sockaddr *) &private, &private_size);
-              ack_received = atoi(&multi_ack[3]);
+              last_ack = atoi(&multi_ack[3]);
 
             }
           }
@@ -281,7 +281,7 @@ int main(int argc, char **argv)
               memcpy(&msg[6], &file_buffer[(i-1)*(BUFFER_SIZE-6)], BUFFER_SIZE-6);
               msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
               multi_ack_size = recvfrom(private_socket, multi_ack, 9, MSG_DONTWAIT,(struct sockaddr *) &private, &private_size);
-              ack_received = atoi(&multi_ack[3]);
+              last_ack = atoi(&multi_ack[3]);
 
             }
             bzero(msg, BUFFER_SIZE);
