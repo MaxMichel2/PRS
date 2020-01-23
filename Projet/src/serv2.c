@@ -173,9 +173,10 @@ int main(int argc, char **argv)
 
       // RTT CALCULATION - TIMER START
 
-      clock_t start_time = clock();
+      struct timespec start_time, end_time;
+      clock_gettime(CLOCK_MONOTONIC, &start_time);
 
-      syn_ack_size = sendto(public_socket, syn_ack, BUFFER_SIZE, 0, (struct sockaddr*) &public, public_size); //flag bloquant ???
+      syn_ack_size = sendto(public_socket, syn_ack, BUFFER_SIZE, 0, (struct sockaddr*) &public, public_size);
       test_error(ack_size, "[-] recvfrom error\n");
 
       // ACK RECEPTION
@@ -186,11 +187,12 @@ int main(int argc, char **argv)
 
       // RTT CALCULATION - TIMER END
 
-      clock_t end_time = clock();
+      clock_gettime(CLOCK_MONOTONIC, &end_time);
 
-      rtt = (float) ((end_time - start_time)/CLOCKS_PER_SEC);
+      rtt = (end_time.tv_sec - start_time.tv_sec) * (1E9);
+      rtt = (rtt + (end_time.tv_nsec - start_time.tv_nsec)) * (1E-9);
 
-      printf("RTT time is: %f sec = %f usec\n", rtt, rtt * pow(10,9));
+      printf("RTT time is: %f sec = %f usec\n", rtt, rtt * 1E9);
 
       if ((ack[0] != 'A') || (ack[1] != 'C') || (ack[2] != 'K') )
       {
@@ -267,7 +269,10 @@ int main(int argc, char **argv)
               memcpy(&msg[6], &file_buffer[(i-1)*(BUFFER_SIZE-6)], BUFFER_SIZE-6);
               msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
               multi_ack_size = recvfrom(private_socket, multi_ack, 9, MSG_DONTWAIT,(struct sockaddr *) &private, &private_size);
-              last_ack = atoi(&multi_ack[3]);
+              if(atoi(&multi_ack[3]) > last_ack)
+              {
+                last_ack = atoi(&multi_ack[3]);
+              }
 
             }
           }
@@ -281,7 +286,10 @@ int main(int argc, char **argv)
               memcpy(&msg[6], &file_buffer[(i-1)*(BUFFER_SIZE-6)], BUFFER_SIZE-6);
               msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
               multi_ack_size = recvfrom(private_socket, multi_ack, 9, MSG_DONTWAIT,(struct sockaddr *) &private, &private_size);
-              last_ack = atoi(&multi_ack[3]);
+              if(atoi(&multi_ack[3]) > last_ack)
+              {
+                last_ack = atoi(&multi_ack[3]);
+              }
 
             }
             bzero(msg, BUFFER_SIZE);
@@ -292,7 +300,10 @@ int main(int argc, char **argv)
           }
 
           multi_ack_size = recvfrom(private_socket, multi_ack, 9, MSG_DONTWAIT, (struct sockaddr *) &private, &private_size);
-          last_ack = atoi(&multi_ack[3]);
+          if(atoi(&multi_ack[3]) > last_ack)
+          {
+            last_ack = atoi(&multi_ack[3]);
+          }
 
           /*
           if(ack_received > last_ack )
