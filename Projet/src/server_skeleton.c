@@ -173,9 +173,10 @@ int main(int argc, char **argv)
 
       // RTT CALCULATION - TIMER START
 
-      clock_t start_time = clock();
+      struct timespec start_time, end_time;
+      clock_gettime(CLOCK_MONOTONIC, &start_time);
 
-      syn_ack_size = sendto(public_socket, syn_ack, BUFFER_SIZE, 0, (struct sockaddr*) &public, public_size); //flag bloquant ???
+      syn_ack_size = sendto(public_socket, syn_ack, BUFFER_SIZE, 0, (struct sockaddr*) &public, public_size);
       test_error(ack_size, "[-] recvfrom error\n");
 
       // ACK RECEPTION
@@ -186,11 +187,12 @@ int main(int argc, char **argv)
 
       // RTT CALCULATION - TIMER END
 
-      clock_t end_time = clock();
+      clock_gettime(CLOCK_MONOTONIC, &end_time);
 
-      rtt = (float) ((end_time - start_time)/CLOCKS_PER_SEC);
+      rtt = (end_time.tv_sec - start_time.tv_sec) * (1E9);
+      rtt = (rtt + (end_time.tv_nsec - start_time.tv_nsec)) * (1E-9);
 
-      printf("RTT time is: %f sec = %f usec\n", rtt, rtt * pow(10,9));
+      printf("RTT time is: %f sec = %f usec\n", rtt, rtt * 1E9);
 
       if ((ack[0] != 'A') || (ack[1] != 'C') || (ack[2] != 'K') )
       {
@@ -239,6 +241,9 @@ int main(int argc, char **argv)
         int last_ack = 0;
         int final_sequence_number = file_size/(BUFFER_SIZE-6) +1;
         int window_size = 120;
+        int ack_received = 0;
+        int ssthreshold = 65535;
+        int dupl = 0;
 
         // SET TIMEOUT ON SOCKET
 
@@ -264,6 +269,11 @@ int main(int argc, char **argv)
               memcpy(&msg[6], &file_buffer[(i-1)*(BUFFER_SIZE-6)], BUFFER_SIZE-6);
               msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
               multi_ack_size = recvfrom(private_socket, multi_ack, 9, MSG_DONTWAIT,(struct sockaddr *) &private, &private_size);
+              if(atoi(&multi_ack[3]) > last_ack)
+              {
+                last_ack = atoi(&multi_ack[3]);
+              }
+
             }
           }
           if (last_ack + window_size >= final_sequence_number)
@@ -276,6 +286,11 @@ int main(int argc, char **argv)
               memcpy(&msg[6], &file_buffer[(i-1)*(BUFFER_SIZE-6)], BUFFER_SIZE-6);
               msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
               multi_ack_size = recvfrom(private_socket, multi_ack, 9, MSG_DONTWAIT,(struct sockaddr *) &private, &private_size);
+              if(atoi(&multi_ack[3]) > last_ack)
+              {
+                last_ack = atoi(&multi_ack[3]);
+              }
+
             }
             bzero(msg, BUFFER_SIZE);
             sequence_number=pad_sequence_number(final_sequence_number);
@@ -283,11 +298,44 @@ int main(int argc, char **argv)
             memcpy(&msg[6], &file_buffer[(final_sequence_number-1)*(BUFFER_SIZE-6)], file_size-(final_sequence_number-1)*(BUFFER_SIZE-6)+6);
             msg_size = sendto(private_socket, msg, file_size-(final_sequence_number-1)*(BUFFER_SIZE-6)+6, 0, (struct sockaddr *) &private, private_size);
           }
+
           multi_ack_size = recvfrom(private_socket, multi_ack, 9, MSG_DONTWAIT, (struct sockaddr *) &private, &private_size);
-          last_ack = atoi(&multi_ack[3]);
+          if(atoi(&multi_ack[3]) > last_ack)
+          {
+            last_ack = atoi(&multi_ack[3]);
+          }
 
+          /*
+          if(ack_received > last_ack )
+          {
+            last_ack = ack_received;
+            if(window_size < (ssthreshold/2)){
+              window_size ++;
+            }
+            else
+            {
+              window_size += 1/window_size;
+            }
+          }
+          usleep(0.001);
+          if(ack_received <= last_ack)
+          {
+            //dupl++;
+            //ssthreshold/2;
+            //window_size = window_size /2;
+            if(dupl > 3)
+            {
+              bzero(msg, BUFFER_SIZE);
+              sequence_number=pad_sequence_number(ack_received);
+              memcpy(&msg[0], sequence_number, 6);
+              memcpy(&msg[6], &file_buffer[(ack_received-1)*(BUFFER_SIZE-6)], BUFFER_SIZE-6);
+              msg_size = sendto(private_socket, msg, BUFFER_SIZE, 0, (struct sockaddr *) &private, private_size);
+              //dupl = 0;
+            }
+          }
+          */
         }
-
+        printf("Window size: %d\n", window_size);
         // END _________________________________________________________________________________________________________________________________________________________________________________________
 
         memset(msg,0,BUFFER_SIZE);
