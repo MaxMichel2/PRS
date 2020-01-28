@@ -240,7 +240,7 @@ int main(int argc, char **argv)
         char* sequence_number;
         int last_ack = 0;
         int final_sequence_number = file_size/(BUFFER_SIZE-6) +1;
-        int window_size = atoi(argv[2]);
+        int window_size = atoi(argv[2]); // 400
         int ack_received = 0;
         int ssthreshold = 65535;
         int duplicate_ack = 0;
